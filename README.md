@@ -38,6 +38,5 @@ Kamera başka bir uygulamada açıksa onu kapatın. `cv2.VideoCapture(0)` varsay
 
 ## Planlanan oyun
 
-Oyuncu, düşen nesnenin üzerindeyken pinch yaparak onu yok edecek. Kaçırılan her nesne Dünya'ya ulaşınca 10 candan biri eksilecek; can sıfırlanınca oyun bitecek. Daha sonra yavaşça artan zorluk, başlangıç ekranı, UFO giriş sahnesi, skor ve yerel yüksek skor eklenecek. Oynanış oturduktan sonra geçici şekillerin yerini piksel görseller alacak. İki oyunculu LAN modu en son tasarlanacak; kamera görüntüsü ağ üzerinden gönderilmeyecek.
-
+Oyuncu, düşen nesnenin üzerindeyken pinch yaparak onu yok edecek. Kaçırılan her nesne Dünya'ya ulaşınca 10 candan biri eksilecek; can sıfırlanınca oyun bitecek. Daha sonra yavaşça artan zorluk, başlangıç ekranı, UFO giriş sahnesi, skor ve yerel yüksek skor eklenecek. Oynanış oturduktan sonra geçici şekillerin yerini piksel görseller alacak.
 Geliştirme yaklaşımı: Her seferinde küçük, anlaşılır bir değişiklik; önce çalışan tek oyunculu oyun, sonra temizlik ve ek özellikler.
