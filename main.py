@@ -2,15 +2,23 @@ import pygame
 import cv2
 import math
 import mediapipe as mp
+import random 
 
 pygame.init()
 screen = pygame.display.set_mode((800, 600))
 clock = pygame.time.Clock()
+last_spawn_time = pygame.time.get_ticks()
 running = True
 pygame.display.set_caption("SAVE THE WORLD")
 camera = cv2.VideoCapture(0)
 hands = mp.solutions.hands.Hands()
 is_pinching = False 
+is_alive = True
+
+
+
+monsters = [[10,0]]
+
 while running:
     if not camera.isOpened():
         break
@@ -25,9 +33,22 @@ while running:
     frame2 = cv2.flip(frame, 1)
     frame3 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
     results = hands.process(frame3)
-
+    time = pygame.time.get_ticks()
     screen.fill((0, 0, 0))
+
+    if time - last_spawn_time >= 5000 :
+        monsters.append([random.randint(0,800),0])
+        last_spawn_time = time
+
     
+    for monster in monsters:
+        pygame.draw.circle(screen, (255,0,0), monster, 5)
+        if monster[1] < 605:
+            monster[1] += 1
+
+    
+
+        
     
     if results.multi_hand_landmarks:
         hand = results.multi_hand_landmarks[0]
@@ -57,7 +78,7 @@ while running:
                 is_pinching = True
             elif is_pinching and cimcik_orani > 0.45:
                 is_pinching = False
-            pygame.display.set_caption("Save the world " + str(cimcik_orani) + str(is_pinching))
+            pygame.display.set_caption("Save the world " + str(cimcik_orani) + str(is_pinching) )
                 
             
 
@@ -65,7 +86,7 @@ while running:
         is_pinching = False
         print("El YOK")
     pygame.display.flip()
-    clock.tick(140)
+    clock.tick(60)
 
 hands.close()
 camera.release()
