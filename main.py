@@ -383,6 +383,7 @@ while running:
                     is_pinching = False
                 if not is_ulting and y1 < y6 and y12 > y5 and y9 > y10 and y8 < y7:
                     is_ulting = True
+                    last_ult_time = time4   # bekleme suresi ulti ATILDIGI andan baslasin
                     for monster in monsters:
                         monster[2] = False
                     flas_zaman = time
