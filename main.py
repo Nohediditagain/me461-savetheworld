@@ -140,11 +140,12 @@ def skor_kaydet(isim, puan):
         f.write(isim + "," + str(puan) + "\n")
 
 def oyunu_sifirla():
-    global health, skor, monsters, life_points
+    global health, skor, monsters, life_points, username
     global is_attack, is_pinching, is_ulting, kaydedildi
     global game_start_time, last_spawn_time, last_spawn_time2, last_pinch_time, last_ult_time
     health = 5
     skor = 0
+    username = ""
     monsters = [[random.randint(50, 750), 0, True]]
     life_points = []
     is_attack = False
@@ -175,20 +176,17 @@ while running:
             elif game_state == "HOWTO":
                 game_state = "MENU"
             elif game_state == "HIGHSCORE":
-                game_state = "MENU"
+                if event.key == pygame.K_r:
+                    oyunu_sifirla()
+                    game_state = "PLAYING"
+                else:
+                    game_state = "MENU"
             elif game_state == "GAMEOVER":
                 if event.key == pygame.K_RETURN:
                     if not kaydedildi:
                         skor_kaydet(username, int(skor))
                         kaydedildi = True
                     game_state = "HIGHSCORE"
-                elif event.key == pygame.K_r:
-                    if not kaydedildi:
-                        skor_kaydet(username, int(skor))
-                        kaydedildi = True
-                    username = ""
-                    oyunu_sifirla()
-                    game_state = "PLAYING"
                 elif event.key == pygame.K_BACKSPACE:
                     username = username[:-1]
                 elif event.unicode.isprintable() and len(username) < 20:
@@ -409,9 +407,8 @@ while running:
         screen.fill((0, 0, 0))
         yazi_ciz("OYUN BITTI", font_buyuk, (200, 0, 0), 120)
         yazi_ciz("Skorun: " + str(int(skor)), font_orta, (255, 255, 255), 220)
-        yazi_ciz("Adin: " + username + "_", font_orta, (0, 200, 0), 300)
-        yazi_ciz("ENTER - Kaydet ve skorlari gor", font_kucuk, (255, 255, 255), 400)
-        yazi_ciz("R - Kaydet ve tekrar oyna",      font_kucuk, (255, 255, 255), 440)
+        yazi_ciz("Adini yaz: " + username + "_", font_orta, (0, 200, 0), 300)
+        yazi_ciz("ENTER - Kaydet ve skorlari gor", font_kucuk, (255, 255, 255), 410)
 
     elif game_state == "HIGHSCORE":
         screen.fill((0, 0, 0))
@@ -424,7 +421,7 @@ while running:
             for i, (isim, puan) in enumerate(skorlar[:5]):
                 yazi_ciz(str(i + 1) + ". " + isim + " - " + str(puan), font_orta, (255, 255, 255), y)
                 y += 55
-        yazi_ciz("Devam etmek icin bir tusa bas...", font_kucuk, (150, 150, 150), 520)
+        yazi_ciz("R - tekrar oyna   /   baska tus - menu", font_kucuk, (150, 150, 150), 520)
 
     pencere.fill((0, 0, 0))
     pencere.blit(pygame.transform.scale(screen, (hedef_w, hedef_h)), (hedef_x, hedef_y))
