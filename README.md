@@ -1,22 +1,49 @@
 # Save the World
 
-Web kamerası ve el hareketleriyle kontrol edilen, uzay temalı bir 2D arcade oyunu. Amaç, UFO'dan Dünya'ya düşen tehlikeli nesneleri parmakları birleştirerek (pinch) yok etmek. Bu depo şu anda **erken prototip** aşamasında; tam oyun henüz yapılmadı.
+Web kamerası ve el hareketleriyle oynanan, uzay temalı bir 2D arcade oyunu. Yukarıdan inen düşman UFO'ları, parmaklarını birbirine kıstırarak (pinch) yok et ve Dünya'yı işgalden koru. Oynanış el hareketleriyle, menü ve skor kaydı klavyeyle kontrol edilir.
 
-## Şu anda ne çalışıyor?
+## Oynanış
 
-`main.py` bir Pygame penceresi açıyor ve OpenCV ile kameradan görüntü okuyor. MediaPipe Hands ilk algılanan eli takip ediyor:
+- Yukarıdan inen **UFO'lar** Dünya'ya (alttaki mavi bölge) ulaşırsa **1 can kaybedersin**. Oyuna 5 canla başlarsın.
+- İşaret parmağı ile başparmağını birbirine **kıstırıp (pinch)** bir UFO'nun üzerine getirince onu yok edersin. Başarılı bir saldırıdan sonra yeni saldırı hakkı 1 saniyede dolar; durumu HUD'da görebilirsin.
+- Her 10 saniyede bir üretilen **yeşil kalpler** Dünya'ya inince **+1 can** verir. Kalbi pinch ile yakalarsan 1 can kaybedersin.
+- **ULTI**: parmaklarını belirli bir şekilde tutunca ekrandaki tüm UFO'lar yok olur (beyaz flash). HUD yeniden "HAZIR" gösterdiğinde tekrar kullanabilirsin; ulti zamanlayıcısı 15 saniyedir.
+- Skor, hayatta kaldığın süreyle artar. Can 0'a inince oyun biter; ismini girip skorunu yerel tabloya kaydedebilirsin.
+- İlk 30 saniyede UFO'ların düşüş hızı ve çıkma sıklığı kademeli olarak artar; ardından aynı düzeyde kalır.
 
-- Yeşil daire işaret parmağının ucunu (landmark 8), mavi daire başparmağın ucunu (landmark 4) gösteriyor.
-- Kamera görüntüsü sağ-sol aynalanıyor; video oyun penceresinde gösterilmiyor.
-- Parmak uçları arasındaki mesafe, bilek (0) ile orta parmak kökü (9) arasındaki mesafeye bölünerek bir pinch oranı elde ediliyor.
-- Oran `0.35` altına düşünce pinch başlıyor; `0.45` üstüne çıkınca bitiyor. İki ayrı eşik, ölçümdeki küçük oynamalara karşı durumu sabit tutuyor.
-- Pencere başlığında oran ve `True`/`False` pinch durumu görünüyor. El kaybolunca pinch durumu kapanıyor.
+### El göstergesi
 
-Şu anda **düşen nesne, çarpışma, skor, can, menü ve UFO yok**. Ekran siyah; renkli daireler geçici görseller. `clock.tick(140)` ekip tercihiyle bırakıldı.
+- İşaret + başparmak ucu: büyük **camgöbeği** daire, aralarında bir çizgi (pinch yapınca yeşile döner).
+- Orta / yüzük / serçe parmak uçları: küçük **turuncu** daireler.
+- Webcam görüntüsü arkada soluk şekilde görünür, elini nerede tuttuğunu görürsün.
 
-## Çalıştırma
+## Kontroller
 
-Gerekenler: Python 3.10, çalışan bir web kamerası ve Windows PowerShell. Projede kullanılan sürümler: Pygame 2.6.1, MediaPipe 0.10.20 ve OpenCV 4.11.0.86.
+| Ekran | Tuş | İşlev |
+|-------|-----|-------|
+| Menü | `ENTER` | Oyunu başlat |
+| Menü | `H` | Nasıl oynanır |
+| Menü | `S` | Skor tablosu |
+| Oyun sonu | yazı + `ENTER` | İsmini yaz, skoru kaydet |
+| Skor tablosu | `R` | Tekrar oyna |
+| Skor tablosu | başka tuş | Menüye dön |
+| Her yer | `ESC` | Oyundan çık |
+
+Oyun **tam ekran** açılır; 800×600'lük oyun alanı ekrana oranı bozulmadan (letterbox) ölçeklenir. Pencere kapatma düğmesi olmadığı için çıkış `ESC` iledir.
+
+## Özellikler
+
+- El takibiyle pinch kontrolü (MediaPipe Hands)
+- İlk 30 saniyede artan zorluk (UFO hızı ve sıklığı)
+- Ana menü, nasıl oynanır, oyun, oyun sonu ve yerel skor tablosu ekranları
+- İsimle yerel yüksek skor kaydı (`scores.txt`)
+- Kodla çizilmiş basit pixel-art (UFO, kalp, ana gemi, dünya)
+- Uzay arka planı (yıldızlar + Dünya) ve soluk kamera arka planı
+- Hasar/ulti ekran flash efektleri ve sol üstte HUD (can, skor, saldırı, ulti durumu)
+
+## Çalıştırma (kaynaktan)
+
+Gerekenler: Python 3.10, çalışan bir web kamerası. Projede kullanılan sürümler: Pygame 2.6.1, MediaPipe 0.10.20, OpenCV 4.11.0.86.
 
 ```powershell
 py -3.10 -m venv .venv
@@ -24,19 +51,23 @@ py -3.10 -m venv .venv
 .\.venv\Scripts\python.exe main.py
 ```
 
-Kamera başka bir uygulamada açıksa onu kapatın. `cv2.VideoCapture(0)` varsayılan kamerayı kullanır. Pencerenin kapatma düğmesi programı sonlandırır.
+Kamera başka bir uygulamada açıksa önce onu kapatın. `cv2.VideoCapture(0)` varsayılan kamerayı kullanır.
+
+`muzik.mp3` oyunun arka plan müziğidir. Dosya bulunamazsa oyun sessiz devam eder.
+
+## Windows için .exe üretme (arkadaşa göndermek için)
+
+```powershell
+pip install pyinstaller
+pyinstaller --onedir --collect-all mediapipe --collect-all cv2 --name SaveTheWorld main.py
+```
+
+Derleme sonrası `dist\SaveTheWorld\` klasörü oluşur. **Klasörün tamamını** ZIP'leyip gönder; karşı taraf `SaveTheWorld.exe`'ye çift tıklayıp oynar (Python kurmasına gerek yok, ama **webcam gerekir**). Müzik istiyorsan `muzik.mp3`'ü de bu klasöre kopyala.
 
 ## Dosyalar
 
-- `main.py`: Şimdilik tüm çalışan prototip burada. Bilerek tek dosya tutuluyor.
-- `README.md`: Ekip için proje ve kurulum özeti.
-- `.gitignore`: Sanal ortamı ve yerel çalışma notlarını depodan uzak tutar.
-
-## Sıradaki küçük adım
-
-`main.py` içinde **tek bir kırmızı yer tutucu nesne** ekranın üstünden aşağı düşecek. Önce sadece konumunu güncelleyip çizeceğiz; yeniden doğma, pinch ile yok etme ve skor sonraki adımlar. Bu adım henüz uygulanmadı.
-
-## Planlanan oyun
-
-Oyuncu, düşen nesnenin üzerindeyken pinch yaparak onu yok edecek. Kaçırılan her nesne Dünya'ya ulaşınca 10 candan biri eksilecek; can sıfırlanınca oyun bitecek. Daha sonra yavaşça artan zorluk, başlangıç ekranı, UFO giriş sahnesi, skor ve yerel yüksek skor eklenecek. Oynanış oturduktan sonra geçici şekillerin yerini piksel görseller alacak.
-Geliştirme yaklaşımı: Her seferinde küçük, anlaşılır bir değişiklik; önce çalışan tek oyunculu oyun, sonra temizlik ve ek özellikler.
+- `main.py`: Oyunun tamamı. Bilerek tek dosya tutuldu.
+- `README.md`: Proje ve kurulum özeti.
+- `muzik.mp3`: Arka plan müziği.
+- `scores.txt`: İlk skor kaydedildiğinde oluşur; yerel yüksek skorları tutar.
+- `.gitignore`: Sanal ortamı ve yerel çalışma dosyalarını depodan uzak tutar.
