@@ -1,16 +1,18 @@
 # Save the World
 
-Web kamerası ve el hareketleriyle oynanan, uzay temalı bir 2D arcade oyunu. Yukarıdan inen düşman UFO'ları, parmaklarını birbirine kıstırarak (pinch) yok et ve Dünya'yı işgalden koru. Kontrol tamamen el hareketiyle: fare veya klavye sadece menü içindir.
+Web kamerası ve el hareketleriyle oynanan, uzay temalı bir 2D arcade oyunu. Yukarıdan inen düşman UFO'ları, parmaklarını birbirine kıstırarak (pinch) yok et ve Dünya'yı işgalden koru. Oynanış el hareketleriyle, menü ve skor kaydı klavyeyle kontrol edilir.
 
 ## Oynanış
 
-- Uzaydan **kırmızı/yeşil UFO'lar** (canavarlar) aşağı iner. Dünya'ya (alttaki mavi bölge) ulaşırlarsa **can kaybedersin**.
-- İşaret parmağı ile başparmağını birbirine **kıstırıp (pinch)** bir UFO'nun üzerine getirince onu yok edersin. Saldırının bir bekleme süresi vardır (HUD'da "Saldiri: HAZIR/doluyor").
-- Ara ara düşen **yeşil kalpler** Dünya'ya inince sana **+1 can** verir — onları pinch'leme, bırak insinler.
-- **ULTI**: elini açıp parmaklarını belirli bir şekilde tutunca ekrandaki tüm UFO'lar yok olur (beyaz flash). 10 saniyede bir kullanılabilir.
-- Can 0'a inince oyun biter.
+- Yukarıdan inen **UFO'lar** Dünya'ya (alttaki mavi bölge) ulaşırsa **1 can kaybedersin**. Oyuna 5 canla başlarsın.
+- İşaret parmağı ile başparmağını birbirine **kıstırıp (pinch)** bir UFO'nun üzerine getirince onu yok edersin. Başarılı bir saldırıdan sonra yeni saldırı hakkı 1 saniyede dolar; durumu HUD'da görebilirsin.
+- Her 10 saniyede bir üretilen **yeşil kalpler** Dünya'ya inince **+1 can** verir. Kalbi pinch ile yakalarsan 1 can kaybedersin.
+- **ULTI**: parmaklarını belirli bir şekilde tutunca ekrandaki tüm UFO'lar yok olur (beyaz flash). HUD yeniden "HAZIR" gösterdiğinde tekrar kullanabilirsin; ulti zamanlayıcısı 15 saniyedir.
+- Skor, hayatta kaldığın süreyle artar. Can 0'a inince oyun biter; ismini girip skorunu yerel tabloya kaydedebilirsin.
+- İlk 30 saniyede UFO'ların düşüş hızı ve çıkma sıklığı kademeli olarak artar; ardından aynı düzeyde kalır.
 
 ### El göstergesi
+
 - İşaret + başparmak ucu: büyük **camgöbeği** daire, aralarında bir çizgi (pinch yapınca yeşile döner).
 - Orta / yüzük / serçe parmak uçları: küçük **turuncu** daireler.
 - Webcam görüntüsü arkada soluk şekilde görünür, elini nerede tuttuğunu görürsün.
@@ -32,7 +34,7 @@ Oyun **tam ekran** açılır; 800×600'lük oyun alanı ekrana oranı bozulmadan
 ## Özellikler
 
 - El takibiyle pinch kontrolü (MediaPipe Hands)
-- Zamanla artan zorluk (UFO hızı ve sıklığı)
+- İlk 30 saniyede artan zorluk (UFO hızı ve sıklığı)
 - Ana menü, nasıl oynanır, oyun, oyun sonu ve yerel skor tablosu ekranları
 - İsimle yerel yüksek skor kaydı (`scores.txt`)
 - Kodla çizilmiş basit pixel-art (UFO, kalp, ana gemi, dünya)
@@ -51,7 +53,7 @@ py -3.10 -m venv .venv
 
 Kamera başka bir uygulamada açıksa önce onu kapatın. `cv2.VideoCapture(0)` varsayılan kamerayı kullanır.
 
-İsteğe bağlı: proje klasörüne `muzik.mp3` koyarsan arka plan müziği olarak çalar; dosya yoksa oyun sessiz başlar.
+`muzik.mp3` oyunun arka plan müziğidir. Dosya bulunamazsa oyun sessiz devam eder.
 
 ## Windows için .exe üretme (arkadaşa göndermek için)
 
@@ -66,5 +68,6 @@ Derleme sonrası `dist\SaveTheWorld\` klasörü oluşur. **Klasörün tamamını
 
 - `main.py`: Oyunun tamamı. Bilerek tek dosya tutuldu.
 - `README.md`: Proje ve kurulum özeti.
-- `scores.txt`: Oyun ilk çalıştığında otomatik oluşur; yerel yüksek skorları tutar.
+- `muzik.mp3`: Arka plan müziği.
+- `scores.txt`: İlk skor kaydedildiğinde oluşur; yerel yüksek skorları tutar.
 - `.gitignore`: Sanal ortamı ve yerel çalışma dosyalarını depodan uzak tutar.
