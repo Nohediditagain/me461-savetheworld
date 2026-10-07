@@ -34,6 +34,11 @@ health = 5
 life_points = []
 is_ulting = False
 last_ult_time = pygame.time.get_ticks()
+last_ayna_time = pygame.time.get_ticks()   # son ayna saldirisi ani
+ayna_saldirisi = False                      # su an ayna (mirror) modunda miyiz
+ayna_bitis = 0                              # ayna saldirisinin bitecegi an
+pinch_durum = {}                            # her el icin ayri pinch durumu (sag/sol)
+aktif_eller = []                            # bu kare ekrandaki ellerin saldiri kutulari
 monsters = [[random.randint(200, 500), 0, True]]
 game_state = "MENU"
 skor = 0
@@ -57,6 +62,12 @@ def yazi_ciz(metin, font, renk, y, x=400):
     rect = s.get_rect()
     rect.center = (x, y)
     screen.blit(s, rect)
+
+def kutu_ici(hx, hy, el):
+    # hedef (hx,hy) bu elin cimcik kutusunun icinde mi?
+    x1, y1, x2, y2 = el["x1"], el["y1"], el["x2"], el["y2"]
+    return (min(x1 - 20, x2 + 20) <= hx <= max(x1 - 20, x2 + 20)
+            and min(y1 - 25, y2 + 25) <= hy <= max(y1 - 25, y2 + 25))
 
 PX = {
     "c": (120, 240, 255), "g": (0, 230, 120), "k": (170, 180, 190),
@@ -143,6 +154,7 @@ def oyunu_sifirla():
     global health, skor, monsters, life_points, username
     global is_attack, is_pinching, is_ulting, kaydedildi
     global game_start_time, last_spawn_time, last_spawn_time2, last_pinch_time, last_ult_time
+    global last_ayna_time, ayna_saldirisi, ayna_bitis, pinch_durum, aktif_eller
     health = 5
     skor = 0
     username = ""
@@ -157,6 +169,11 @@ def oyunu_sifirla():
     last_spawn_time2 = pygame.time.get_ticks()
     last_pinch_time = pygame.time.get_ticks()
     last_ult_time = pygame.time.get_ticks()
+    last_ayna_time = pygame.time.get_ticks()
+    ayna_saldirisi = False
+    ayna_bitis = 0
+    pinch_durum = {}
+    aktif_eller = []
 
 while running:
     for event in pygame.event.get():
@@ -225,7 +242,10 @@ while running:
             break
         if health <= 0:
             game_state = "GAMEOVER"
-        frame2 = cv2.flip(frame, 1)
+        if ayna_saldirisi:
+            frame2 = frame                 # ayna saldirisi: flip YOK -> kontroller ters
+        else:
+            frame2 = cv2.flip(frame, 1)    # normalde ayna goruntusu
         frame3 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
         results = hands.process(frame3)
 
@@ -251,6 +271,16 @@ while running:
         saniyede_kac_canavar = 0.5 + 1.5 * u ** 2
 
         canavar_dogurma_suresi = 1500 / saniyede_kac_canavar
+
+        # 30 saniyede bir elektromanyetik ayna saldirisi (5 sn surer)
+        if time - last_ayna_time >= 30000 and not ayna_saldirisi:
+            ayna_saldirisi = True
+            ayna_bitis = time + 5000
+            last_ayna_time = time
+            flas_zaman = time
+            flas_renk = (160, 0, 200)      # mor flash
+        if ayna_saldirisi and time >= ayna_bitis:
+            ayna_saldirisi = False
 
         if time2 - last_spawn_time2 >= canavar_dogurma_suresi:
             monsters.append([random.randint(50, 750), 0, True])
@@ -279,14 +309,16 @@ while running:
                 life_point[2] = False
                 health += 1
 
-            if life_point[2] == True and is_pinching == True and is_attack == True:
-                if min(x1 - 25, x2 + 25) <= life_point[0] <= max(x1 - 25, x2 + 25) and min(y1 - 25, y2 + 25) <= life_point[1] <= max(y1 - 25, y2 + 25):
-                    life_point[2] = False
-                    is_attack = False
-                    last_pinch_time = time
-                    health -= 1
-                    flas_zaman = time
-                    flas_renk = (200, 0, 0)
+            if life_point[2] == True and is_attack == True:
+                for el in aktif_eller:
+                    if el["pinch"] and kutu_ici(life_point[0], life_point[1], el):
+                        life_point[2] = False
+                        is_attack = False
+                        last_pinch_time = time
+                        health -= 1
+                        flas_zaman = time
+                        flas_renk = (200, 0, 0)
+                        break
 
         for monster in monsters:
 
@@ -301,87 +333,93 @@ while running:
                 flas_zaman = time
                 flas_renk = (200, 0, 0)
 
-            if monster[2] == True and is_pinching == True and is_attack == True:
-                if min(x1 - 20, x2 + 20) <= monster[0] <= max(x1 - 20, x2 + 20) and min(y1 - 25, y2 + 25) <= monster[1] <= max(y1 - 25, y2 + 25):
-                    monster[2] = False
-                    is_attack = False
-                    last_pinch_time = time
+            if monster[2] == True and is_attack == True:
+                for el in aktif_eller:
+                    if el["pinch"] and kutu_ici(monster[0], monster[1], el):
+                        monster[2] = False
+                        is_attack = False
+                        last_pinch_time = time
+                        break
 
+        aktif_eller = []
         if results.multi_hand_landmarks:
-            hand = results.multi_hand_landmarks[0]
+            for el_idx, hand in enumerate(results.multi_hand_landmarks):
+                # bu elin etiketi (Sag/Sol) - pinch durumunu ayri tutmak icin
+                if results.multi_handedness and el_idx < len(results.multi_handedness):
+                    el_etiket = results.multi_handedness[el_idx].classification[0].label
+                else:
+                    el_etiket = str(el_idx)
 
-            isaret4 = hand.landmark[8]
-            x1 = int(isaret4.x * 800)
-            y1 = int(isaret4.y * 600)
-            p1 = (x1, y1)
+                isaret4 = hand.landmark[8]
+                x1 = int(isaret4.x * 800)
+                y1 = int(isaret4.y * 600)
+                p1 = (x1, y1)
 
-            isaret2 = hand.landmark[6]
-            x6 = int(isaret2.x * 800)
-            y6 = int(isaret2.y * 600)
-            p6 = (x6, y6)
+                isaret2 = hand.landmark[6]
+                x6 = int(isaret2.x * 800)
+                y6 = int(isaret2.y * 600)
 
-            yuzuk2 = hand.landmark[14]
-            x7 = int(yuzuk2.x * 800)
-            y7 = int(yuzuk2.y * 600)
-            p7 = (x7, y7)
+                yuzuk2 = hand.landmark[14]
+                x7 = int(yuzuk2.x * 800)
+                y7 = int(yuzuk2.y * 600)
 
-            yuzuk4 = hand.landmark[16]
-            x8 = int(yuzuk4.x * 800)
-            y8 = int(yuzuk4.y * 600)
-            p8 = (x8, y8)
+                yuzuk4 = hand.landmark[16]
+                x8 = int(yuzuk4.x * 800)
+                y8 = int(yuzuk4.y * 600)
 
-            serce2 = hand.landmark[18]
-            x9 = int(serce2.x * 800)
-            y9 = int(serce2.y * 600)
-            p9 = (x9, y9)
+                serce2 = hand.landmark[18]
+                x9 = int(serce2.x * 800)
+                y9 = int(serce2.y * 600)
 
-            serce4 = hand.landmark[20]
-            x10 = int(serce4.x * 800)
-            y10 = int(serce4.y * 600)
-            p10 = (x10, y10)
+                serce4 = hand.landmark[20]
+                x10 = int(serce4.x * 800)
+                y10 = int(serce4.y * 600)
 
-            orta_barnak2 = hand.landmark[10]
-            x12 = int(orta_barnak2.x * 800)
-            y12 = int(orta_barnak2.y * 600)
-            p12 = (x12, y12)
+                orta_barnak2 = hand.landmark[10]
+                x12 = int(orta_barnak2.x * 800)
+                y12 = int(orta_barnak2.y * 600)
 
-            tombul_parmak4 = hand.landmark[4]
-            x2 = int(tombul_parmak4.x * 800)
-            y2 = int(tombul_parmak4.y * 600)
-            p2 = (x2, y2)
+                tombul_parmak4 = hand.landmark[4]
+                x2 = int(tombul_parmak4.x * 800)
+                y2 = int(tombul_parmak4.y * 600)
+                p2 = (x2, y2)
 
-            l1 = math.hypot(x1 - x2, y1 - y2)
-            bilek = hand.landmark[0]
-            x3 = int(bilek.x * 800)
-            y3 = int(bilek.y * 600)
-            p3 = (x3, y3)
-            orta_barnak1 = hand.landmark[9]
-            x4 = int(orta_barnak1.x * 800)
-            y4 = int(orta_barnak1.y * 600)
-            p4 = (x4, y4)
-            orta_barnak4 = hand.landmark[12]
-            x5 = int(orta_barnak4.x * 800)
-            y5 = int(orta_barnak4.y * 600)
-            p5 = (x5, y5)
-            referans_mesafe = math.hypot(x4 - x3, y4 - y3)
+                l1 = math.hypot(x1 - x2, y1 - y2)
+                bilek = hand.landmark[0]
+                x3 = int(bilek.x * 800)
+                y3 = int(bilek.y * 600)
+                orta_barnak1 = hand.landmark[9]
+                x4 = int(orta_barnak1.x * 800)
+                y4 = int(orta_barnak1.y * 600)
+                orta_barnak4 = hand.landmark[12]
+                x5 = int(orta_barnak4.x * 800)
+                y5 = int(orta_barnak4.y * 600)
+                referans_mesafe = math.hypot(x4 - x3, y4 - y3)
 
-            # parmaklari ekranda goster
-            # diger parmak uclari (orta/yuzuk/serce) = turuncu, kucuk
-            for uc in (p5, p8, p10):
-                pygame.draw.circle(screen, (255, 160, 0), uc, 8)
-            # isaret + basparmak = cimcik ikilisi (cyan, buyuk); aradaki cizgi pinch'te yesil
-            cizgi_renk = (0, 255, 0) if is_pinching else (0, 200, 200)
-            pygame.draw.line(screen, cizgi_renk, p1, p2, 3)
-            pygame.draw.circle(screen, (0, 255, 255), p1, 12)
-            pygame.draw.circle(screen, (0, 255, 255), p2, 12)
+                # bu elin pinch durumu (histerezis, el bazli)
+                el_pinch = pinch_durum.get(el_etiket, False)
+                if referans_mesafe != 0:
+                    cimcik_orani = l1 / referans_mesafe
+                    if not el_pinch and cimcik_orani < 0.35:
+                        el_pinch = True
+                    elif el_pinch and cimcik_orani > 0.45:
+                        el_pinch = False
+                pinch_durum[el_etiket] = el_pinch
 
-            if not referans_mesafe == 0:
-                cimcik_orani = l1 / referans_mesafe
-                if not is_pinching and cimcik_orani < 0.35:
-                    is_pinching = True
-                elif is_pinching and cimcik_orani > 0.45:
-                    is_pinching = False
-                if not is_ulting and y1 < y6 and y12 > y5 and y9 > y10 and y8 < y7:
+                # parmaklari ekranda goster
+                for uc in ((x5, y5), (x8, y8), (x10, y10)):
+                    pygame.draw.circle(screen, (255, 160, 0), uc, 8)
+                # isaret + basparmak = cimcik ikilisi; aradaki cizgi pinch'te yesil
+                cizgi_renk = (0, 255, 0) if el_pinch else (0, 200, 200)
+                pygame.draw.line(screen, cizgi_renk, p1, p2, 3)
+                pygame.draw.circle(screen, (0, 255, 255), p1, 12)
+                pygame.draw.circle(screen, (0, 255, 255), p2, 12)
+
+                # bu elin saldiri kutusunu kaydet
+                aktif_eller.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2, "pinch": el_pinch})
+
+                # ulti jesti (iki elden biri yapabilir)
+                if referans_mesafe != 0 and not is_ulting and y1 < y6 and y12 > y5 and y9 > y10 and y8 < y7:
                     is_ulting = True
                     last_ult_time = time4   # bekleme suresi ulti ATILDIGI andan baslasin
                     for monster in monsters:
@@ -389,13 +427,19 @@ while running:
                     flas_zaman = time
                     flas_renk = (255, 255, 255)
         else:
-            is_pinching = False
+            pinch_durum = {}
 
         if time2 - flas_zaman < 150:
             kaplama = pygame.Surface((800, 600))
             kaplama.set_alpha(110)
             kaplama.fill(flas_renk)
             screen.blit(kaplama, (0, 0))
+
+        if ayna_saldirisi:
+            # yanip sonen vurgu
+            if (time // 300) % 2 == 0:
+                yazi_ciz("ELEKTROMANYETIK", font_buyuk, (255, 0, 255), 250)
+                yazi_ciz("AYNA SALDIRISI!", font_buyuk, (255, 0, 255), 320)
 
         yazi_ciz("Can : " + str(health), font_kucuk, (255, 255, 255), 25, x=75)
         yazi_ciz("Skor: " + str(int(skor)), font_kucuk, (255, 255, 255), 55, x=75)
